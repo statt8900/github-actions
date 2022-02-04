@@ -6,7 +6,7 @@ packages = [
   {include = "utilities", from = "src"},
 ]
 repository = "https://github.com/statt8900/github-actions"
-version = "0.0.0.post2.dev0+4c971c1"
+version = "0.0.0"
 
 [tool.poetry.dependencies]
 python = ">=3.8"
