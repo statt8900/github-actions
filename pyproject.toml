@@ -1,0 +1,32 @@
+[tool.poetry]
+authors = ["Michael Statt <michael.statt@modelyst.io>"]
+description = ""
+name = "modelyst-utilities"
+packages = [
+  {include = "utilities", from = "src"},
+]
+repository = "https://github.com/statt8900/github-actions"
+version = "0.0.0.post2.dev0+4c971c1"
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+
+[tool.poetry.dev-dependencies]
+black = "^22.1.0"
+flake8 = "^4.0.1"
+mypy = "^0.931"
+pre-commit = "^2.17.0"
+pydocstyle = "^6.1.1"
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+
+[tool.poetry-dynamic-versioning]
+enable = true
+metadata = true
+style = "semver"
+vcs = "git"
+
+[tool.poetry-dynamic-versioning.substitution]
+files = ['src/dbgen/__init__.py']
