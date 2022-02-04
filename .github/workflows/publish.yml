@@ -14,10 +14,9 @@ jobs:
     steps:
       - name: echo
         run: echo test
-  new:
+  publish:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-20.04
-    needs: new
     steps:
       - name: echo
         run: echo 'hello world'
