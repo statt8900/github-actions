@@ -10,6 +10,8 @@ version = "0.0.0"
 
 [tool.poetry.dependencies]
 python = ">=3.8"
+typer = "^0.4.0"
+pre-commit = "^2.17.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"
