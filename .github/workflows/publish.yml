@@ -9,6 +9,11 @@ on:
       - completed
 
 jobs: 
+  start:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: echo
+        run: echo test
   new:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-20.04
