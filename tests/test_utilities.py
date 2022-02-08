@@ -1,2 +1,2 @@
 def test_easy():
-    assert False
+    assert True

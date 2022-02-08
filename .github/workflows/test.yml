@@ -40,6 +40,8 @@ jobs:
         run: python -m poetry install
       - name: test
         run: python -m pytest
+      - name: precommit
+        uses: pre-commit/action@v2.0.3
   new:
     runs-on: ubuntu-20.04
     needs: test
