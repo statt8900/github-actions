@@ -1,6 +1,6 @@
 import re
+import subprocess
 from enum import Enum
-from pathlib import Path
 from typing import Optional
 
 import toml
@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typer import Exit, Option, Typer, secho
 from utilities import __version__ as py_version
 
-version_regex = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
+version_regex = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:[\+\-]([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
 app = Typer()
 
 
@@ -17,6 +17,13 @@ class BumpType(str, Enum):
     MAJOR = "major"
     MINOR = "minor"
     PATCH = "patch"
+
+
+def get_most_recent_tag():
+    tag = subprocess.check_output(["git", "describe", "--tags"]).decode("utf-8").strip()
+    version = Version.parse(tag)
+    version.prerelease = f"post.{version.prerelease}"
+    return version
 
 
 class Version(BaseModel):
@@ -111,6 +118,19 @@ def write_new_version(
         f.write(toml.dumps(old_toml))
 
 
+@app.command("validate")
+def validate():
+    tagged_version = get_most_recent_tag()
+    curr_version = get_current_version()
+    if tagged_version.prerelease is not None and curr_version != tagged_version:
+        secho(
+            "Detected tag on this version but tagged version and current version do not match.\n"
+            f"Tagged Version: {tagged_version}\n"
+            f"Current Version: {curr_version}"
+        )
+        raise Exit(2)
+
+
 @app.command("set")
 def set_version(
     new_version: str = Option(None, "--version"),
@@ -129,21 +149,36 @@ def set_version(
         "-f",
         help="Clear the current metadata and prerelease information.",
     ),
+    clear: bool = Option(
+        False,
+        "--clear",
+        "-c",
+        help="Clear the current metadata and prerelease information.",
+    ),
+    short: bool = Option(
+        False,
+        "--short",
+        "-s",
+        help=" -s.",
+    ),
 ):
     # If version is explicitly passed in override current version
     curr_version = get_current_version()
     if new_version:
-        version = Version.parse(new_version)
-        if version < curr_version and not force:
-            secho(
-                "Version you are setting is less than current version. Please use --force flag to force this change."
-            )
-            raise Exit(2)
+        if new_version == "git":
+            version = get_most_recent_tag()
+        else:
+            version = Version.parse(new_version)
+            if version < curr_version and not force:
+                secho(
+                    "Version you are setting is less than current version. Please use --force flag to force this change."
+                )
+                raise Exit(2)
     else:
         version = curr_version
     # Bump the version with the corresponding CLI arg
     if bump_type:
-        version = version.bump(bump_type=bump_type)
+        version = version.bump(bump_type=bump_type, clear_extras=clear)
     # If we are adding prerelease/metadata information make sure we are not overwriting unless explictly set
     if prerelease is not None or metadata is not None:
         if (version.prerelease is None and version.metadata is None) or force:
@@ -156,7 +191,10 @@ def set_version(
             raise Exit(2)
     if overwrite:
         write_new_version(version, utilities.__file__)
-    secho(version)
+    if short:
+        secho(version)
+    else:
+        secho(f"New version: {version}")
     return 0
 
 
