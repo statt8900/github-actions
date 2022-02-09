@@ -22,7 +22,8 @@ class BumpType(str, Enum):
 def get_most_recent_tag():
     tag = subprocess.check_output(["git", "describe", "--tags"]).decode("utf-8").strip()
     version = Version.parse(tag)
-    version.prerelease = f"post.{version.prerelease}"
+    if version.prerelease:
+        version.prerelease = f"post.{version.prerelease}"
     return version
 
 
@@ -118,17 +119,46 @@ def write_new_version(
         f.write(toml.dumps(old_toml))
 
 
+def validate(tagged_version: Version, current_version: Version):
+    if tagged_version.prerelease is not None and current_version != tagged_version:
+        return False
+    return True
+
+
 @app.command("validate")
-def validate():
+def run_validate():
     tagged_version = get_most_recent_tag()
     curr_version = get_current_version()
-    if tagged_version.prerelease is not None and curr_version != tagged_version:
+    if not validate(tagged_version, curr_version):
         secho(
             "Detected tag on this version but tagged version and current version do not match.\n"
             f"Tagged Version: {tagged_version}\n"
             f"Current Version: {curr_version}"
         )
         raise Exit(2)
+    return 0
+
+
+@app.command("tag")
+def tag(force: bool = Option(False, "--force")):
+    tagged_version = get_most_recent_tag()
+    current_version = get_current_version()
+    if validate(tagged_version, current_version):
+        secho("Tag already matches current version")
+        return 0
+    if current_version.prerelease or current_version.metadata:
+        secho("Can't tag prereleases or metadata yet without --force")
+        raise Exit(2)
+    tag_output = (
+        subprocess.check_output(["git", "tag", str(current_version)])
+        .decode("utf-8")
+        .strip()
+    )
+    if tag_output:
+        print(tag_output)
+    else:
+        secho("success!")
+    return 0
 
 
 @app.command("set")
